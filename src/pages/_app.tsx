@@ -1,6 +1,37 @@
-import '@/styles/globals.css'
-import type { AppProps } from 'next/app'
+import "@/styles/globals.css";
+import type { AppProps } from "next/app";
+import { WagmiConfig, createClient, configureChains } from "wagmi";
+import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
+import { ConnectKitProvider, getDefaultClient } from "connectkit";
+import { polygonMumbai } from "wagmi/chains";
+
+const { provider, webSocketProvider, chains } = configureChains(
+  [polygonMumbai],
+  [
+    jsonRpcProvider({
+      rpc: (chain) => {
+        return { http: chain.rpcUrls.default.http[0] };
+      },
+    }),
+  ]
+);
+
+const client = createClient(
+  getDefaultClient({
+    appName: "Thea demo",
+    chains: chains,
+    autoConnect: true,
+    provider: provider,
+    webSocketProvider: webSocketProvider,
+  })
+);
 
 export default function App({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />
+  return (
+    <WagmiConfig client={client}>
+      <ConnectKitProvider>
+        <Component {...pageProps} />
+      </ConnectKitProvider>
+    </WagmiConfig>
+  );
 }
