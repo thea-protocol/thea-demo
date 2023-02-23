@@ -44,8 +44,7 @@ function Convert() {
       );
     } else {
       await approve?.();
-      await writeAsync?.();
-      alert("Transaction was successful");
+      await writeAsync?.().then(() => alert("Transaction was successful"));
     }
   };
 
@@ -78,12 +77,8 @@ function Convert() {
               required
             />
           </div>
-          <Button disabled={!writeAsync} onClick={() => convert()}>
-            Convert
-          </Button>
-          <Button disabled={!writeAsync} onClick={() => convert(true)}>
-            Convert with sig
-          </Button>
+          <Button onClick={() => convert()}>Convert</Button>
+          <Button onClick={() => convert(true)}>Convert with sig</Button>
         </div>
       </div>
     </div>

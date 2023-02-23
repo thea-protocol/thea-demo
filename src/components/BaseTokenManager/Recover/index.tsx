@@ -86,7 +86,13 @@ function Recover() {
 
   const { config } = usePrepareBaseTokenManagerRecover({
     args: [BigNumber.from(tokenId || "0"), parseUnits(amount || "0", 4)],
-    enabled: !!tokenId && !!amount,
+    enabled:
+      !!tokenId &&
+      !!amount &&
+      !approveBT &&
+      !approveVintage &&
+      !approveSDG &&
+      !approveRT,
   });
   const { writeAsync } = useBaseTokenManagerRecover(config);
 
@@ -103,8 +109,7 @@ function Recover() {
       await approveVintage?.();
       await approveSDG?.();
       await approveRT?.();
-      await writeAsync?.();
-      alert("Transaction was successful");
+      await writeAsync?.().then(() => alert("Transaction was successful"));
     }
   };
   return (
@@ -136,12 +141,8 @@ function Recover() {
               required
             />
           </div>
-          <Button disabled={!writeAsync} onClick={() => recover()}>
-            Recover
-          </Button>
-          <Button disabled={!writeAsync} onClick={() => recover(true)}>
-            Recover with sig
-          </Button>
+          <Button onClick={() => recover()}>Recover</Button>
+          <Button onClick={() => recover(true)}>Recover with sig</Button>
         </div>
       </div>
     </div>

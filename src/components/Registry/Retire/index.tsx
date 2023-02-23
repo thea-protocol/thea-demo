@@ -42,8 +42,7 @@ function Retire() {
       );
     } else {
       await approve?.();
-      await writeAsync?.();
-      alert("Transaction was successful");
+      await writeAsync?.().then(() => alert("Transaction was successful"));
     }
   };
 
@@ -76,12 +75,8 @@ function Retire() {
               required
             />
           </div>
-          <Button disabled={!writeAsync} onClick={() => retire()}>
-            Retire
-          </Button>
-          <Button disabled={!writeAsync} onClick={() => retire(true)}>
-            Retire with sig
-          </Button>
+          <Button onClick={() => retire()}>Retire</Button>
+          <Button onClick={() => retire(true)}>Retire with sig</Button>
         </div>
       </div>
     </div>
