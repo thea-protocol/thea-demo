@@ -3,20 +3,27 @@ import {
   useBaseTokenManagerConvert,
   usePrepareBaseTokenManagerConvert,
   usePrepareTheaErc1155SetApprovalForAll,
+  useTheaErc1155BalanceOf,
   useTheaErc1155SetApprovalForAll,
 } from "@/generated";
 import { convertWithSig } from "@/utils/utils";
 import { BigNumber } from "ethers";
 import { parseUnits } from "ethers/lib/utils.js";
 import { Label, TextInput, Button } from "flowbite-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
 function Convert() {
   const [tokenId, setTokenId] = useState("0");
   const [amount, setAmount] = useState("0");
+  const [error, setError] = useState<string>();
 
   const { address } = useAccount();
+  const { data: theaErc1155Balance } = useTheaErc1155BalanceOf({
+    args: [address!, BigNumber.from(tokenId || "0")],
+    enabled: !!address,
+    watch: true,
+  });
 
   const { config: approveConfig } = usePrepareTheaErc1155SetApprovalForAll({
     args: [baseTokenManagerAddress, true],
@@ -30,7 +37,7 @@ function Convert() {
 
   const { config: convertConfig } = usePrepareBaseTokenManagerConvert({
     args: [BigNumber.from(tokenId || "0"), parseUnits(amount || "0", 4)],
-    enabled: !!tokenId && !!amount && !!approve,
+    enabled: !!tokenId && !!amount && !error,
   });
   const { writeAsync } = useBaseTokenManagerConvert(convertConfig);
 
@@ -47,6 +54,14 @@ function Convert() {
       await writeAsync?.().then(() => alert("Transaction was successful"));
     }
   };
+
+  useEffect(() => {
+    if (!theaErc1155Balance) return;
+    const hasSufficientBalance = theaErc1155Balance.gte(
+      parseUnits(amount || "0", 4)
+    );
+    setError(hasSufficientBalance ? undefined : "Insufficient Balance");
+  }, [amount, theaErc1155Balance]);
 
   return (
     <div className="space-y-6">
@@ -77,9 +92,14 @@ function Convert() {
               required
             />
           </div>
-          <Button onClick={() => convert()}>Convert</Button>
-          <Button onClick={() => convert(true)}>Convert with sig</Button>
+          <Button disabled={!!error} onClick={() => convert()}>
+            Convert
+          </Button>
+          <Button disabled={!!error} onClick={() => convert(true)}>
+            Convert with sig
+          </Button>
         </div>
+        <div>{error}</div>
       </div>
     </div>
   );

@@ -1,3 +1,9 @@
+import {
+  baseTokenAddress,
+  ratingTokenAddress,
+  sdgTokenAddress,
+  vintageTokenAddress,
+} from "@/generated";
 import React from "react";
 import { useAccount, useBalance } from "wagmi";
 import Convert from "./Convert";
@@ -7,22 +13,22 @@ function BaseTokenManager() {
   const { address } = useAccount();
   const { data: baseTokenBalance } = useBalance({
     address: address,
-    token: "0xb89b6A3A6DE8Ae535d26E7Ad94A7dD0Be88A6074",
+    token: baseTokenAddress,
     watch: true,
   });
   const { data: vintageBalance } = useBalance({
     address: address,
-    token: "0x737146EA29c72931E4FCc9b78Ff2EA28D2553658",
+    token: vintageTokenAddress,
     watch: true,
   });
   const { data: sdgBalance } = useBalance({
     address: address,
-    token: "0xf60eFE9E4DE5F2cA6f1D1F1574A5eb58b759AcE1",
+    token: sdgTokenAddress,
     watch: true,
   });
   const { data: ratingBalance } = useBalance({
     address: address,
-    token: "0xeC65e4c4f9185409fe152c35A86535F06615bbbf",
+    token: ratingTokenAddress,
     watch: true,
   });
 

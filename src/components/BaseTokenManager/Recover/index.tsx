@@ -1,15 +1,19 @@
 import {
+  baseTokenAddress,
   baseTokenManagerAddress,
+  ratingTokenAddress,
+  sdgTokenAddress,
   useBaseTokenApprove,
   useBaseTokenManagerRecover,
   usePrepareBaseTokenManagerRecover,
   useRatingTokenApprove,
   useSdgTokenApprove,
   useVintageTokenApprove,
+  vintageTokenAddress,
 } from "@/generated";
 import { BigNumber } from "ethers";
-import React, { useState } from "react";
-import { useAccount } from "wagmi";
+import React, { useEffect, useState } from "react";
+import { useAccount, useBalance } from "wagmi";
 import { Button, TextInput, Label } from "flowbite-react";
 import { parseUnits } from "ethers/lib/utils.js";
 import { recoverWithSig } from "@/utils/utils";
@@ -28,8 +32,30 @@ const RATING_BASE = 2;
 function Recover() {
   const [tokenId, setTokenId] = useState("0");
   const [amount, setAmount] = useState("0");
+  const [error, setError] = useState<string>();
 
   const { address } = useAccount();
+  const { data: baseTokenBalance } = useBalance({
+    address: address,
+    token: baseTokenAddress,
+    watch: true,
+  });
+  const { data: vintageBalance } = useBalance({
+    address: address,
+    token: vintageTokenAddress,
+    watch: true,
+  });
+  const { data: sdgBalance } = useBalance({
+    address: address,
+    token: sdgTokenAddress,
+    watch: true,
+  });
+  const { data: ratingBalance } = useBalance({
+    address: address,
+    token: ratingTokenAddress,
+    watch: true,
+  });
+
   const { writeAsync: approveBT } = useBaseTokenApprove({
     mode: "recklesslyUnprepared",
     args: [
@@ -86,13 +112,7 @@ function Recover() {
 
   const { config } = usePrepareBaseTokenManagerRecover({
     args: [BigNumber.from(tokenId || "0"), parseUnits(amount || "0", 4)],
-    enabled:
-      !!tokenId &&
-      !!amount &&
-      !approveBT &&
-      !approveVintage &&
-      !approveSDG &&
-      !approveRT,
+    enabled: !!tokenId && !!amount && !error,
   });
   const { writeAsync } = useBaseTokenManagerRecover(config);
 
@@ -112,6 +132,44 @@ function Recover() {
       await writeAsync?.().then(() => alert("Transaction was successful"));
     }
   };
+
+  useEffect(() => {
+    if (!baseTokenBalance || !vintageBalance || !sdgBalance || !ratingBalance)
+      return;
+    setError(
+      baseTokenBalance.value.gte(
+        unit.mul(parseUnits(amount || "0", 4)).div(rate)
+      )
+        ? vintageBalance.value.gte(
+            unit
+              .mul(
+                unit
+                  .mul(VINTAGE_VALUE - VINTAGE_BASE)
+                  .mul(parseUnits(amount || "0", 4))
+                  .div(rate)
+              )
+              .div(rate)
+          )
+          ? sdgBalance.value.gte(
+              unit
+                .mul(SDG_VALUE - SDG_BASE)
+                .mul(parseUnits(amount || "0", 4))
+                .div(rate)
+            )
+            ? ratingBalance.value.gte(
+                unit
+                  .mul(RATING_VALUE - RATING_BASE)
+                  .mul(parseUnits(amount || "0", 4))
+                  .div(rate)
+              )
+              ? undefined
+              : "Insufficient rating tokens"
+            : "Insufficient SDG tokens"
+          : "Insufficient vintage tokens"
+        : "Insufficient base tokens"
+    );
+  }, [amount, baseTokenBalance, ratingBalance, sdgBalance, vintageBalance]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -141,9 +199,14 @@ function Recover() {
               required
             />
           </div>
-          <Button onClick={() => recover()}>Recover</Button>
-          <Button onClick={() => recover(true)}>Recover with sig</Button>
+          <Button disabled={!!error} onClick={() => recover()}>
+            Recover
+          </Button>
+          <Button disabled={!!error} onClick={() => recover(true)}>
+            Recover with sig
+          </Button>
         </div>
+        <div>{error}</div>
       </div>
     </div>
   );

@@ -127,7 +127,11 @@ export async function convertWithSig(
   amount: BigNumber,
   user: `0x${string}`
 ) {
-  const vccSig = await permitErc1155(theaErc1155Address, user, registryAddress);
+  const vccSig = await permitErc1155(
+    theaErc1155Address,
+    user,
+    baseTokenManagerAddress
+  );
 
   const domain = {
     name: "TheaBaseTokenManager",

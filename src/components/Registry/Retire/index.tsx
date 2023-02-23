@@ -3,20 +3,28 @@ import {
   usePrepareRegistryRetire,
   usePrepareTheaErc1155SetApprovalForAll,
   useRegistryRetire,
+  useTheaErc1155BalanceOf,
   useTheaErc1155SetApprovalForAll,
 } from "@/generated";
 import { retireWithSig } from "@/utils/utils";
 import { BigNumber } from "ethers";
 import { parseUnits } from "ethers/lib/utils.js";
 import { Label, TextInput, Button } from "flowbite-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
 function Retire() {
   const [tokenId, setTokenId] = useState("0");
   const [amount, setAmount] = useState("0");
+  const [error, setError] = useState<string>();
 
   const { address } = useAccount();
+  const { data: theaErc1155Balance } = useTheaErc1155BalanceOf({
+    args: [address!, BigNumber.from(tokenId || "0")],
+    enabled: !!address,
+    watch: true,
+  });
+
   const { config: approveConfig } = usePrepareTheaErc1155SetApprovalForAll({
     args: [registryAddress, true],
     enabled: !!address,
@@ -28,7 +36,7 @@ function Retire() {
     useTheaErc1155SetApprovalForAll(approveConfig);
   const { config: retireConfig } = usePrepareRegistryRetire({
     args: [BigNumber.from(tokenId || "0"), parseUnits(amount || "0", 4)],
-    enabled: !!tokenId && !!amount && !!approve,
+    enabled: !!tokenId && !!amount && !error,
   });
   const { writeAsync } = useRegistryRetire(retireConfig);
 
@@ -45,6 +53,14 @@ function Retire() {
       await writeAsync?.().then(() => alert("Transaction was successful"));
     }
   };
+
+  useEffect(() => {
+    if (!theaErc1155Balance) return;
+    const hasSufficientBalance = theaErc1155Balance.gte(
+      parseUnits(amount || "0", 4)
+    );
+    setError(hasSufficientBalance ? undefined : "Insufficient Balance");
+  }, [amount, theaErc1155Balance]);
 
   return (
     <div className="space-y-6">
@@ -75,9 +91,14 @@ function Retire() {
               required
             />
           </div>
-          <Button onClick={() => retire()}>Retire</Button>
-          <Button onClick={() => retire(true)}>Retire with sig</Button>
+          <Button disabled={!!error} onClick={() => retire()}>
+            Retire
+          </Button>
+          <Button disabled={!!error} onClick={() => retire(true)}>
+            Retire with sig
+          </Button>
         </div>
+        <div>{error}</div>
       </div>
     </div>
   );
