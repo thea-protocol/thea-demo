@@ -1,44 +1,18 @@
-import {
-  registryAddress,
-  usePrepareRegistryRetire,
-  usePrepareTheaErc1155SetApprovalForAll,
-  useRegistryRetire,
-  useTheaErc1155BalanceOf,
-  useTheaErc1155SetApprovalForAll,
-} from "@/generated";
+import { TheaSDKContext } from "@/components/TheaSDKProvider";
 import { retireWithSig } from "@/utils/utils";
 import { BigNumber } from "ethers";
 import { parseUnits } from "ethers/lib/utils.js";
 import { Label, TextInput, Button } from "flowbite-react";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
 function Retire() {
-  const [tokenId, setTokenId] = useState("0");
-  const [amount, setAmount] = useState("0");
-  const [error, setError] = useState<string>();
+  const [tokenId, setTokenId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [error, setError] = useState("");
 
+  const { theaSDK, userBalance } = useContext(TheaSDKContext);
   const { address } = useAccount();
-  const { data: theaErc1155Balance } = useTheaErc1155BalanceOf({
-    args: [address!, BigNumber.from(tokenId || "0")],
-    enabled: !!address,
-    watch: true,
-  });
-
-  const { config: approveConfig } = usePrepareTheaErc1155SetApprovalForAll({
-    args: [registryAddress, true],
-    enabled: !!address,
-    onSuccess(data) {
-      console.log("Approve success =>", data);
-    },
-  });
-  const { writeAsync: approve } =
-    useTheaErc1155SetApprovalForAll(approveConfig);
-  const { config: retireConfig } = usePrepareRegistryRetire({
-    args: [BigNumber.from(tokenId || "0"), parseUnits(amount || "0", 4)],
-    enabled: !!tokenId && !!amount && !error,
-  });
-  const { writeAsync } = useRegistryRetire(retireConfig);
 
   const retire = async (withSig?: boolean) => {
     if (!address || !tokenId || !amount) return;
@@ -49,18 +23,26 @@ function Retire() {
         address
       );
     } else {
-      await approve?.();
-      await writeAsync?.().then(() => alert("Transaction was successful"));
+      try {
+        await theaSDK?.offset.offsetNFT(tokenId, parseUnits(amount, 4));
+        alert("Transaction successful");
+      } catch (error) {
+        alert("Transaction failed");
+        console.log(error);
+      }
     }
   };
 
   useEffect(() => {
-    if (!theaErc1155Balance) return;
-    const hasSufficientBalance = theaErc1155Balance.gte(
-      parseUnits(amount || "0", 4)
-    );
-    setError(hasSufficientBalance ? undefined : "Insufficient Balance");
-  }, [amount, theaErc1155Balance]);
+    if (!tokenId || !amount || !userBalance) return;
+    if (!userBalance.nft[tokenId]) {
+      setError("No balance");
+    } else if (parseUnits(amount, 4).gt(userBalance.nft[tokenId])) {
+      setError("Insufficient balance");
+    } else {
+      setError("");
+    }
+  }, [amount, tokenId, userBalance]);
 
   return (
     <div className="space-y-6">

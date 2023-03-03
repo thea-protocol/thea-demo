@@ -1,67 +1,79 @@
-import {
-  baseTokenAddress,
-  ratingTokenAddress,
-  sdgTokenAddress,
-  vintageTokenAddress,
-} from "@/generated";
-import React from "react";
-import { useAccount, useBalance } from "wagmi";
+import { formatUnits } from "ethers/lib/utils.js";
+import React, { useContext } from "react";
+import { TheaSDKContext } from "../TheaSDKProvider";
 import Convert from "./Convert";
 import Recover from "./Recover";
 
 function BaseTokenManager() {
-  const { address } = useAccount();
-  const { data: baseTokenBalance } = useBalance({
-    address: address,
-    token: baseTokenAddress,
-    watch: true,
-  });
-  const { data: vintageBalance } = useBalance({
-    address: address,
-    token: vintageTokenAddress,
-    watch: true,
-  });
-  const { data: sdgBalance } = useBalance({
-    address: address,
-    token: sdgTokenAddress,
-    watch: true,
-  });
-  const { data: ratingBalance } = useBalance({
-    address: address,
-    token: ratingTokenAddress,
-    watch: true,
-  });
+  const { userBalance } = useContext(TheaSDKContext);
 
   return (
     <div>
-      <div className="flex space-x-4">
-        <div className="mb-6 flex w-max items-center gap-2 rounded-md border py-2 px-4 shadow-md">
-          <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            {baseTokenBalance?.formatted}
-          </h5>
-          <p className="font-normal text-gray-700 dark:text-gray-400">Base</p>
+      {userBalance && (
+        <div className="flex flex-wrap space-x-4">
+          <div>
+            <h3 className="mb-2 text-2xl font-bold dark:text-white">
+              Feature tokens
+            </h3>
+            <div className="flex space-x-4">
+              <div className="mb-6 flex w-max items-center gap-2 rounded-md border py-2 px-4 shadow-md">
+                <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  {formatUnits(userBalance.fungible.nbt, 4)}
+                </h5>
+                <p className="font-normal text-gray-700 dark:text-gray-400">
+                  Base
+                </p>
+              </div>
+              <div className="mb-6 flex w-max items-center gap-2 rounded-md border py-2 px-4 shadow-md">
+                <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  {formatUnits(userBalance.fungible.vintage, 4)}
+                </h5>
+                <p className="font-normal text-gray-700 dark:text-gray-400">
+                  Vintage
+                </p>
+              </div>
+              <div className="mb-6 flex w-max items-center gap-2 rounded-md border py-2 px-4 shadow-md">
+                <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  {formatUnits(userBalance.fungible.sdg, 4)}
+                </h5>
+                <p className="font-normal text-gray-700 dark:text-gray-400">
+                  SDG
+                </p>
+              </div>
+              <div className="mb-6 flex w-max items-center gap-2 rounded-md border py-2 px-4 shadow-md">
+                <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  {formatUnits(userBalance.fungible.rating, 4)}
+                </h5>
+                <p className="font-normal text-gray-700 dark:text-gray-400">
+                  Rating
+                </p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 className="mb-2 text-2xl font-bold dark:text-white">NFTs</h3>
+            <div className="flex flex-wrap space-x-4">
+              {Object.keys(userBalance.nft).map((tokenId) => {
+                return (
+                  userBalance.nft[tokenId] !== "0" && (
+                    <div
+                      key={tokenId}
+                      className="mb-6 flex w-max items-center gap-2 rounded-md border py-2 px-4 shadow-md"
+                    >
+                      <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                        {formatUnits(userBalance.nft[tokenId], 4)}
+                      </h5>
+                      <p className="font-normal text-gray-700 dark:text-gray-400">
+                        {tokenId}
+                      </p>
+                    </div>
+                  )
+                );
+              })}
+            </div>
+          </div>
         </div>
-        <div className="mb-6 flex w-max items-center gap-2 rounded-md border py-2 px-4 shadow-md">
-          <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            {vintageBalance?.formatted}
-          </h5>
-          <p className="font-normal text-gray-700 dark:text-gray-400">
-            Vintage
-          </p>
-        </div>
-        <div className="mb-6 flex w-max items-center gap-2 rounded-md border py-2 px-4 shadow-md">
-          <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            {sdgBalance?.formatted}
-          </h5>
-          <p className="font-normal text-gray-700 dark:text-gray-400">SDG</p>
-        </div>
-        <div className="mb-6 flex w-max items-center gap-2 rounded-md border py-2 px-4 shadow-md">
-          <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            {ratingBalance?.formatted}
-          </h5>
-          <p className="font-normal text-gray-700 dark:text-gray-400">Rating</p>
-        </div>
-      </div>
+      )}
       <h2 className="text-4xl font-bold dark:text-white">Base Token Manager</h2>
       <hr className="my-8 h-px border-0 bg-gray-200 dark:bg-gray-700" />
       <div className="space-y-4">

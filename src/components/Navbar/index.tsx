@@ -1,4 +1,4 @@
-import { ConnectKitButton } from "connectkit";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import React from "react";
 
 type Props = {};
@@ -6,7 +6,7 @@ type Props = {};
 function Navbar({}: Props) {
   return (
     <div className="flex w-full justify-end py-4">
-      <ConnectKitButton showBalance />
+      <ConnectButton />
     </div>
   );
 }
