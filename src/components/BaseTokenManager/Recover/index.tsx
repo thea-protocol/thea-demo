@@ -21,16 +21,29 @@ function Recover() {
   const { address } = useAccount();
 
   const recover = async (withSig?: boolean) => {
-    if (!address || !tokenId || !amount) return;
+    if (!address || !tokenId || !amount || !theaSDK) return;
     if (withSig) {
-      await recoverWithSig(
-        BigNumber.from(tokenId),
-        parseUnits(amount, 4),
-        address
-      );
+      try {
+        const tokensRequired = await theaSDK.recover.queryRecoverFungibles(
+          tokenId,
+          parseUnits(amount, 4)
+        );
+        await recoverWithSig(
+          BigNumber.from(tokenId),
+          parseUnits(amount, 4),
+          BigNumber.from(tokensRequired.cbt),
+          BigNumber.from(tokensRequired.vintage),
+          BigNumber.from(tokensRequired.sdg),
+          BigNumber.from(tokensRequired.rating),
+          address
+        );
+      } catch (error) {
+        alert("Transaction failed");
+        console.log(error);
+      }
     } else {
       try {
-        await theaSDK?.recover.recoverNFT(tokenId, parseUnits(amount, 4));
+        await theaSDK.recover.recoverNFT(tokenId, parseUnits(amount, 4));
         alert("Transaction successful");
       } catch (error) {
         alert("Transaction failed");

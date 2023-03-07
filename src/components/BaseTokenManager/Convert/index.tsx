@@ -15,7 +15,7 @@ function Convert() {
   const { address } = useAccount();
 
   const convert = async (withSig?: boolean) => {
-    if (!address || !tokenId || !amount) return;
+    if (!address || !tokenId || !amount || !theaSDK) return;
     if (withSig) {
       await convertWithSig(
         BigNumber.from(tokenId),
@@ -24,7 +24,7 @@ function Convert() {
       );
     } else {
       try {
-        await theaSDK?.convert.convertNFT(tokenId, parseUnits(amount, 4));
+        await theaSDK.convert.convertNFT(tokenId, parseUnits(amount, 4));
         alert("Transaction successful");
       } catch (error) {
         alert("Transaction failed");

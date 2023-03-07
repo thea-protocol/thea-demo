@@ -15,7 +15,7 @@ function Retire() {
   const { address } = useAccount();
 
   const retire = async (withSig?: boolean) => {
-    if (!address || !tokenId || !amount) return;
+    if (!address || !tokenId || !amount || !theaSDK) return;
     if (withSig) {
       await retireWithSig(
         BigNumber.from(tokenId),
@@ -24,7 +24,7 @@ function Retire() {
       );
     } else {
       try {
-        await theaSDK?.offset.offsetNFT(tokenId, parseUnits(amount, 4));
+        await theaSDK.offset.offsetNFT(tokenId, parseUnits(amount, 4));
         alert("Transaction successful");
       } catch (error) {
         alert("Transaction failed");

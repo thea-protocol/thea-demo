@@ -194,6 +194,10 @@ export async function convertWithSig(
 export async function recoverWithSig(
   tokenId: BigNumber,
   amount: BigNumber,
+  amountBt: BigNumber,
+  amountVintage: BigNumber,
+  amountSdg: BigNumber,
+  amountRating: BigNumber,
   user: `0x${string}`
 ) {
   const baseTokenSig = await permit(
@@ -201,38 +205,48 @@ export async function recoverWithSig(
     baseTokenAddress,
     user,
     baseTokenManagerAddress,
-    unit.mul(amount).div(rate)
+    amountBt
   );
-  const vintageSig = await permit(
-    "vt",
-    vintageTokenAddress,
-    user,
-    baseTokenManagerAddress,
-    unit
-      .mul(VINTAGE_VALUE - VINTAGE_BASE)
-      .mul(amount)
-      .div(rate)
-  );
-  const sdgSig = await permit(
-    "vt",
-    sdgTokenAddress,
-    user,
-    baseTokenManagerAddress,
-    unit
-      .mul(SDG_VALUE - SDG_BASE)
-      .mul(amount)
-      .div(rate)
-  );
-  const ratingSig = await permit(
-    "vt",
-    ratingTokenAddress,
-    user,
-    baseTokenManagerAddress,
-    unit
-      .mul(RATING_VALUE - RATING_BASE)
-      .mul(amount)
-      .div(rate)
-  );
+  const permitSigs = [baseTokenSig];
+  if (!amountVintage.isZero()) {
+    const vintageSig = await permit(
+      "vt",
+      vintageTokenAddress,
+      user,
+      baseTokenManagerAddress,
+      unit
+        .mul(VINTAGE_VALUE - VINTAGE_BASE)
+        .mul(amount)
+        .div(rate)
+    );
+    permitSigs.push(vintageSig);
+  }
+  if (!amountSdg.isZero()) {
+    const sdgSig = await permit(
+      "vt",
+      sdgTokenAddress,
+      user,
+      baseTokenManagerAddress,
+      unit
+        .mul(SDG_VALUE - SDG_BASE)
+        .mul(amount)
+        .div(rate)
+    );
+    permitSigs.push(sdgSig);
+  }
+  if (!amountRating.isZero()) {
+    const ratingSig = await permit(
+      "vt",
+      ratingTokenAddress,
+      user,
+      baseTokenManagerAddress,
+      unit
+        .mul(RATING_VALUE - RATING_BASE)
+        .mul(amount)
+        .div(rate)
+    );
+    permitSigs.push(ratingSig);
+  }
 
   const domain = {
     name: "TheaBaseTokenManager",
@@ -277,7 +291,7 @@ export async function recoverWithSig(
     amount,
     user,
     { v, r, s, deadline },
-    [baseTokenSig, vintageSig, sdgSig, ratingSig],
+    permitSigs,
   ]);
 
   try {

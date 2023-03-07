@@ -27,7 +27,6 @@ function TheaSDKProvider({ children }: Props) {
     const balance = await sdk.carbonInfo.getUsersBalance(address.toLowerCase());
     setTheaSDK(sdk);
     setUserBalance(balance);
-    console.log(balance);
   }, [provider, signer]);
 
   useEffect(() => {
