@@ -1,12 +1,17 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import React from "react";
+import { Button } from "flowbite-react";
+import React, { useContext } from "react";
+import { TheaSDKContext } from "../TheaSDKProvider";
 
-type Props = {};
+function Navbar() {
+  const { connect, account } = useContext(TheaSDKContext);
 
-function Navbar({}: Props) {
   return (
     <div className="flex w-full justify-end py-4">
-      <ConnectButton />
+      <Button onClick={connect} pill outline>
+        {account
+          ? `${account.slice(0, 6)}...${account.slice(-4)}`
+          : "Connect Wallet"}
+      </Button>
     </div>
   );
 }

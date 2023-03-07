@@ -4,24 +4,22 @@ import { BigNumber } from "ethers";
 import { parseUnits } from "ethers/lib/utils.js";
 import { Label, TextInput, Button } from "flowbite-react";
 import React, { useContext, useEffect, useState } from "react";
-import { useAccount } from "wagmi";
 
 function Convert() {
   const [tokenId, setTokenId] = useState("");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
 
-  const { theaSDK, userBalance } = useContext(TheaSDKContext);
-  const { address } = useAccount();
+  const { theaSDK, userBalance, account } = useContext(TheaSDKContext);
 
   const convert = async (withSig?: boolean) => {
-    if (!address || !tokenId || !amount || !theaSDK) return;
+    if (!account || !tokenId || !amount || !theaSDK) return;
     if (withSig) {
-      await convertWithSig(
-        BigNumber.from(tokenId),
-        parseUnits(amount, 4),
-        address
-      );
+      // await convertWithSig(
+      //   BigNumber.from(tokenId),
+      //   parseUnits(amount, 4),
+      //   account
+      // );
     } else {
       try {
         await theaSDK.convert.convertNFT(tokenId, parseUnits(amount, 4));
