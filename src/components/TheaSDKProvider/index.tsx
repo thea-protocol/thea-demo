@@ -1,5 +1,5 @@
 import { Web3Provider } from "@ethersproject/providers";
-import { TheaNetwork, TheaSDK, UserBalance } from "@mcovilo/thea-sdk";
+import { TheaNetwork, TheaSDK, UserBalance } from "@thea-protocol/sdk";
 import { createContext, useCallback, useEffect, useState } from "react";
 import { WalletInfo, Magic } from "magic-sdk";
 
