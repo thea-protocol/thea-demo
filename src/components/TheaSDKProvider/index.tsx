@@ -17,6 +17,7 @@ type State = {
   connector?: WalletInfo;
   connect?: () => Promise<string[]>;
   disconnect?: () => Promise<boolean>;
+  showUI?: () => Promise<boolean>;
   userBalance?: UserBalance;
 };
 
@@ -78,6 +79,7 @@ function TheaSDKProvider({ children }: Props) {
     provider,
     connect,
     disconnect,
+    showUI: async () => await magic.wallet.showUI(),
   });
 
   const loadSDK = useCallback(async () => {
