@@ -83,14 +83,15 @@ function TheaSDKProvider({ children }: Props) {
   const loadSDK = useCallback(async () => {
     const theaSDK = await TheaSDK.init({
       network: TheaNetwork.MUMBAI,
-      web3Provider: provider,
+      web3Provider: state.account ? provider : undefined,
+      provider,
     });
 
     setState((prevState) => ({
       ...prevState,
       theaSDK,
     }));
-  }, [provider]);
+  }, [provider, state.account]);
 
   const loadBalance = useCallback(async () => {
     if (!state.theaSDK || !state.account) return;
