@@ -1,41 +1,39 @@
-import { BigNumber, constants, ethers } from "ethers";
-import { readContract, signTypedData } from "@wagmi/core";
-import { baseErc20abi } from "@/constants/abi/BaseERC20";
-import {
-  baseTokenAddress,
-  baseTokenManagerABI,
-  baseTokenManagerAddress,
-  ratingTokenAddress,
-  registryABI,
-  registryAddress,
-  sdgTokenAddress,
-  theaErc1155ABI,
-  theaErc1155Address,
-  vintageTokenAddress,
-} from "@/generated";
+import { BigNumber, BigNumberish, constants, ethers } from "ethers";
 import axios from "axios";
+import {
+  baseTokenConfig,
+  btmConfig,
+  ratingTokenConfig,
+  registryConfig,
+  sdgTokenConfig,
+  theaErc1155Config,
+  vintageTokenConfig,
+} from "@/constants/abi";
+import { baseErc20abi } from "@/constants/abi/BaseERC20";
+import { getCurrentNonce } from "./sigNonces";
+import { signTypedDataV4 } from "./signTypedData";
 
 const RELAYER_URL =
   "https://api.defender.openzeppelin.com/autotasks/abeca809-b779-43e9-b78c-b66a34fed73b/runs/webhook/b2a2cb82-03ed-448c-9de5-43138da30ecd/36DEqMeT1YnSbSm1M1EXta";
 axios.defaults.headers.post["Content-Type"] = "application/json";
 
-const rate = 1000;
-const unit = BigNumber.from(10 ** 4);
+// const rate = 1000;
+// const unit = BigNumber.from(10 ** 4);
 
-const VINTAGE_VALUE = 2019;
-const SDG_VALUE = 15;
-const RATING_VALUE = 2;
+// const VINTAGE_VALUE = 2019;
+// const SDG_VALUE = 15;
+// const RATING_VALUE = 2;
 
-const VINTAGE_BASE = 2017;
-const SDG_BASE = 3;
-const RATING_BASE = 2;
+// const VINTAGE_BASE = 2017;
+// const SDG_BASE = 3;
+// const RATING_BASE = 2;
 
 export async function permit(
   tokenName: string,
   tokenAddress: `0x${string}`,
   user: `0x${string}`,
   spender: `0x${string}`,
-  amount: BigNumber
+  amount: BigNumberish
 ) {
   const domain = {
     name: tokenName,
@@ -45,6 +43,12 @@ export async function permit(
   } as const;
 
   const types = {
+    EIP712Domain: [
+      { name: "name", type: "string" },
+      { name: "version", type: "string" },
+      { name: "chainId", type: "uint256" },
+      { name: "verifyingContract", type: "address" },
+    ],
     Permit: [
       { name: "owner", type: "address" },
       { name: "spender", type: "address" },
@@ -54,23 +58,23 @@ export async function permit(
     ],
   } as const;
 
-  const currentNonce = await readContract({
-    address: tokenAddress,
-    abi: baseErc20abi,
-    functionName: "sigNonces",
-    args: [user],
-  });
-  const deadline = BigNumber.from(Math.floor(Date.now() / 1000) + 20 * 60);
+  const currentNonce = await getCurrentNonce(tokenAddress, baseErc20abi, user);
+  const deadline = Math.floor(Date.now() / 1000) + 20 * 60;
 
-  const value = {
+  const message = {
     owner: user,
     spender,
-    value: amount,
-    nonce: currentNonce,
+    value: amount.toString(),
+    nonce: currentNonce.toHexString(),
     deadline,
   } as const;
 
-  const signature = await signTypedData({ domain, types, value });
+  const signature = await signTypedDataV4(user, {
+    domain,
+    types,
+    primaryType: "Permit",
+    message,
+  });
 
   const { v, r, s } = ethers.utils.splitSignature(signature);
 
@@ -78,7 +82,6 @@ export async function permit(
 }
 
 export async function permitErc1155(
-  tokenAddress: `0x${string}`,
   user: `0x${string}`,
   operator: `0x${string}`
 ) {
@@ -86,10 +89,16 @@ export async function permitErc1155(
     name: "theaERC1155",
     version: "1",
     chainId: 80001,
-    verifyingContract: tokenAddress,
+    verifyingContract: theaErc1155Config.address,
   } as const;
 
   const types = {
+    EIP712Domain: [
+      { name: "name", type: "string" },
+      { name: "version", type: "string" },
+      { name: "chainId", type: "uint256" },
+      { name: "verifyingContract", type: "address" },
+    ],
     Permit: [
       { name: "owner", type: "address" },
       { name: "operator", type: "address" },
@@ -99,23 +108,27 @@ export async function permitErc1155(
     ],
   } as const;
 
-  const currentNonce = await readContract({
-    address: tokenAddress,
-    abi: theaErc1155ABI,
-    functionName: "sigNonces",
-    args: [user],
-  });
-  const deadline = BigNumber.from(Math.floor(Date.now() / 1000) + 20 * 60);
+  const currentNonce = await getCurrentNonce(
+    theaErc1155Config.address,
+    theaErc1155Config.abi,
+    user
+  );
+  const deadline = Math.floor(Date.now() / 1000) + 20 * 60;
 
-  const value = {
+  const message = {
     owner: user,
     operator,
     approved: true,
-    nonce: currentNonce,
+    nonce: currentNonce.toHexString(),
     deadline,
   } as const;
 
-  const signature = await signTypedData({ domain, types, value });
+  const signature = await signTypedDataV4(user, {
+    domain,
+    types,
+    primaryType: "Permit",
+    message,
+  });
 
   const { v, r, s } = ethers.utils.splitSignature(signature);
 
@@ -123,24 +136,26 @@ export async function permitErc1155(
 }
 
 export async function convertWithSig(
-  tokenId: BigNumber,
-  amount: BigNumber,
+  tokenId: BigNumberish,
+  amount: BigNumberish,
   user: `0x${string}`
 ) {
-  const vccSig = await permitErc1155(
-    theaErc1155Address,
-    user,
-    baseTokenManagerAddress
-  );
+  const vccSig = await permitErc1155(user, btmConfig.address);
 
   const domain = {
     name: "TheaBaseTokenManager",
     version: "1",
     chainId: 80001,
-    verifyingContract: baseTokenManagerAddress,
+    verifyingContract: btmConfig.address,
   } as const;
 
   const types = {
+    EIP712Domain: [
+      { name: "name", type: "string" },
+      { name: "version", type: "string" },
+      { name: "chainId", type: "uint256" },
+      { name: "verifyingContract", type: "address" },
+    ],
     ConvertWithSig: [
       { name: "id", type: "uint256" },
       { name: "amount", type: "uint256" },
@@ -150,27 +165,31 @@ export async function convertWithSig(
     ],
   } as const;
 
-  const currentNonce = await readContract({
-    address: baseTokenManagerAddress,
-    abi: baseTokenManagerABI,
-    functionName: "sigNonces",
-    args: [user],
-  });
-  const deadline = BigNumber.from(Math.floor(Date.now() / 1000) + 20 * 60);
+  const currentNonce = await getCurrentNonce(
+    btmConfig.address,
+    btmConfig.abi,
+    user
+  );
+  const deadline = Math.floor(Date.now() / 1000) + 20 * 60;
 
-  const value = {
-    id: tokenId,
-    amount,
+  const message = {
+    id: tokenId.toString(),
+    amount: amount.toString(),
     owner: user,
-    nonce: currentNonce,
+    nonce: currentNonce.toHexString(),
     deadline,
   } as const;
 
-  const signature = await signTypedData({ domain, types, value });
+  const signature = await signTypedDataV4(user, {
+    domain,
+    types,
+    primaryType: "ConvertWithSig",
+    message,
+  });
 
   const { v, r, s } = ethers.utils.splitSignature(signature);
 
-  const btm = new ethers.utils.Interface(baseTokenManagerABI);
+  const btm = new ethers.utils.Interface(btmConfig.abi);
   const encodedData = btm.encodeFunctionData("convertWithSig", [
     tokenId,
     amount,
@@ -179,71 +198,56 @@ export async function convertWithSig(
     vccSig,
   ]);
 
-  try {
-    const response = await axios.post(RELAYER_URL, {
-      to: baseTokenManagerAddress,
-      data: encodedData,
-    });
-    alert("Convert with sig successful");
-    console.log(response);
-  } catch (error) {
-    console.log("Convert with sig error : ", error);
-  }
+  return await axios.post(RELAYER_URL, {
+    to: btmConfig.address,
+    data: encodedData,
+  });
 }
 
 export async function recoverWithSig(
-  tokenId: BigNumber,
-  amount: BigNumber,
-  amountBt: BigNumber,
-  amountVintage: BigNumber,
-  amountSdg: BigNumber,
-  amountRating: BigNumber,
+  tokenId: BigNumberish,
+  amount: BigNumberish,
+  amountBt: BigNumberish,
+  amountVintage: BigNumberish,
+  amountSdg: BigNumberish,
+  amountRating: BigNumberish,
   user: `0x${string}`
 ) {
   const baseTokenSig = await permit(
     "BT_2017",
-    baseTokenAddress,
+    baseTokenConfig.address,
     user,
-    baseTokenManagerAddress,
+    btmConfig.address,
     amountBt
   );
   const permitSigs = [baseTokenSig];
-  if (!amountVintage.isZero()) {
-    const vintageSig = await permit(
-      "vt",
-      vintageTokenAddress,
-      user,
-      baseTokenManagerAddress,
-      unit
-        .mul(VINTAGE_VALUE - VINTAGE_BASE)
-        .mul(amount)
-        .div(rate)
-    );
-    permitSigs.push(vintageSig);
-  }
-  if (!amountSdg.isZero()) {
+  if (!BigNumber.from(amountSdg).isZero()) {
     const sdgSig = await permit(
       "vt",
-      sdgTokenAddress,
+      sdgTokenConfig.address,
       user,
-      baseTokenManagerAddress,
-      unit
-        .mul(SDG_VALUE - SDG_BASE)
-        .mul(amount)
-        .div(rate)
+      btmConfig.address,
+      amountSdg
     );
     permitSigs.push(sdgSig);
   }
-  if (!amountRating.isZero()) {
+  if (!BigNumber.from(amountVintage).isZero()) {
+    const vintageSig = await permit(
+      "vt",
+      vintageTokenConfig.address,
+      user,
+      btmConfig.address,
+      amountVintage
+    );
+    permitSigs.push(vintageSig);
+  }
+  if (!BigNumber.from(amountRating).isZero()) {
     const ratingSig = await permit(
       "vt",
-      ratingTokenAddress,
+      ratingTokenConfig.address,
       user,
-      baseTokenManagerAddress,
-      unit
-        .mul(RATING_VALUE - RATING_BASE)
-        .mul(amount)
-        .div(rate)
+      btmConfig.address,
+      amountRating
     );
     permitSigs.push(ratingSig);
   }
@@ -252,10 +256,16 @@ export async function recoverWithSig(
     name: "TheaBaseTokenManager",
     version: "1",
     chainId: 80001,
-    verifyingContract: baseTokenManagerAddress,
+    verifyingContract: btmConfig.address,
   } as const;
 
   const types = {
+    EIP712Domain: [
+      { name: "name", type: "string" },
+      { name: "version", type: "string" },
+      { name: "chainId", type: "uint256" },
+      { name: "verifyingContract", type: "address" },
+    ],
     RecoverWithSig: [
       { name: "id", type: "uint256" },
       { name: "amount", type: "uint256" },
@@ -265,27 +275,31 @@ export async function recoverWithSig(
     ],
   } as const;
 
-  const currentNonce = await readContract({
-    address: baseTokenManagerAddress,
-    abi: baseTokenManagerABI,
-    functionName: "sigNonces",
-    args: [user],
-  });
-  const deadline = BigNumber.from(Math.floor(Date.now() / 1000) + 20 * 60);
+  const currentNonce = await getCurrentNonce(
+    btmConfig.address,
+    btmConfig.abi,
+    user
+  );
+  const deadline = Math.floor(Date.now() / 1000) + 20 * 60;
 
-  const value = {
-    id: tokenId,
-    amount,
+  const message = {
+    id: tokenId.toString(),
+    amount: amount.toString(),
     owner: user,
-    nonce: currentNonce,
+    nonce: currentNonce.toHexString(),
     deadline,
   } as const;
 
-  const signature = await signTypedData({ domain, types, value });
+  const signature = await signTypedDataV4(user, {
+    domain,
+    types,
+    primaryType: "RecoverWithSig",
+    message,
+  });
 
   const { v, r, s } = ethers.utils.splitSignature(signature);
 
-  const btm = new ethers.utils.Interface(baseTokenManagerABI);
+  const btm = new ethers.utils.Interface(btmConfig.abi);
   const encodedData = btm.encodeFunctionData("recoverWithSig", [
     tokenId,
     amount,
@@ -294,33 +308,33 @@ export async function recoverWithSig(
     permitSigs,
   ]);
 
-  try {
-    const response = await axios.post(RELAYER_URL, {
-      to: baseTokenManagerAddress,
-      data: encodedData,
-    });
-    alert("Recover with sig successful");
-    console.log(response);
-  } catch (error) {
-    console.log("Recover with sig error : ", error);
-  }
+  return await axios.post(RELAYER_URL, {
+    to: btmConfig.address,
+    data: encodedData,
+  });
 }
 
 export async function retireWithSig(
-  tokenId: BigNumber,
-  amount: BigNumber,
+  tokenId: BigNumberish,
+  amount: BigNumberish,
   user: `0x${string}`
 ) {
-  const vccSig = await permitErc1155(theaErc1155Address, user, registryAddress);
+  const vccSig = await permitErc1155(user, registryConfig.address);
 
   const domain = {
     name: "TheaRegistry",
     version: "1",
     chainId: 80001,
-    verifyingContract: registryAddress,
+    verifyingContract: registryConfig.address,
   } as const;
 
   const types = {
+    EIP712Domain: [
+      { name: "name", type: "string" },
+      { name: "version", type: "string" },
+      { name: "chainId", type: "uint256" },
+      { name: "verifyingContract", type: "address" },
+    ],
     RetireWithSig: [
       { name: "tokenId", type: "uint256" },
       { name: "amount", type: "uint256" },
@@ -331,28 +345,32 @@ export async function retireWithSig(
     ],
   } as const;
 
-  const currentNonce = await readContract({
-    address: registryAddress,
-    abi: registryABI,
-    functionName: "sigNonces",
-    args: [user],
-  });
-  const deadline = BigNumber.from(Math.floor(Date.now() / 1000) + 20 * 60);
+  const currentNonce = await getCurrentNonce(
+    registryConfig.address,
+    registryConfig.abi,
+    user
+  );
+  const deadline = Math.floor(Date.now() / 1000) + 20 * 60;
 
-  const value = {
-    tokenId,
-    amount,
+  const message = {
+    tokenId: tokenId.toString(),
+    amount: amount.toString(),
     detailsId: constants.Zero,
     owner: user,
-    nonce: currentNonce,
+    nonce: currentNonce.toHexString(),
     deadline,
   } as const;
 
-  const signature = await signTypedData({ domain, types, value });
+  const signature = await signTypedDataV4(user, {
+    domain,
+    types,
+    primaryType: "RetireWithSig",
+    message,
+  });
 
   const { v, r, s } = ethers.utils.splitSignature(signature);
 
-  const registry = new ethers.utils.Interface(registryABI);
+  const registry = new ethers.utils.Interface(registryConfig.abi);
   const encodedData = registry.encodeFunctionData("retireWithSig", [
     tokenId,
     amount,
@@ -361,14 +379,8 @@ export async function retireWithSig(
     vccSig,
   ]);
 
-  try {
-    const response = await axios.post(RELAYER_URL, {
-      to: registryAddress,
-      data: encodedData,
-    });
-    alert("Retire with sig successful");
-    console.log(response);
-  } catch (error) {
-    console.log("Retire with sig error : ", error);
-  }
+  return await axios.post(RELAYER_URL, {
+    to: registryConfig.address,
+    data: encodedData,
+  });
 }

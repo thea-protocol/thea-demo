@@ -1,6 +1,5 @@
 import { TheaSDKContext } from "@/components/TheaSDKProvider";
 import { convertWithSig } from "@/utils/utils";
-import { BigNumber } from "ethers";
 import { parseUnits } from "ethers/lib/utils.js";
 import { Label, TextInput, Button } from "flowbite-react";
 import React, { useContext, useEffect, useState } from "react";
@@ -14,20 +13,16 @@ function Convert() {
 
   const convert = async (withSig?: boolean) => {
     if (!account || !tokenId || !amount || !theaSDK) return;
-    if (withSig) {
-      // await convertWithSig(
-      //   BigNumber.from(tokenId),
-      //   parseUnits(amount, 4),
-      //   account
-      // );
-    } else {
-      try {
+    try {
+      if (withSig) {
+        await convertWithSig(tokenId, parseUnits(amount, 4), account);
+      } else {
         await theaSDK.convert.convertNFT(tokenId, parseUnits(amount, 4));
-        alert("Transaction successful");
-      } catch (error) {
-        alert("Transaction failed");
-        console.log(error);
       }
+      alert("Transaction successful");
+    } catch (error) {
+      alert("Transaction failed");
+      console.log(error);
     }
   };
 

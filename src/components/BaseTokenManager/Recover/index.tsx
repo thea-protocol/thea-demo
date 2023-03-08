@@ -16,33 +16,28 @@ function Recover() {
 
   const recover = async (withSig?: boolean) => {
     if (!account || !tokenId || !amount || !theaSDK) return;
-    if (withSig) {
-      // try {
-      //   const tokensRequired = await theaSDK.recover.queryRecoverFungibles(
-      //     tokenId,
-      //     parseUnits(amount, 4)
-      //   );
-      //   await recoverWithSig(
-      //     BigNumber.from(tokenId),
-      //     parseUnits(amount, 4),
-      //     BigNumber.from(tokensRequired.cbt),
-      //     BigNumber.from(tokensRequired.vintage),
-      //     BigNumber.from(tokensRequired.sdg),
-      //     BigNumber.from(tokensRequired.rating),
-      //     account
-      //   );
-      // } catch (error) {
-      //   alert("Transaction failed");
-      //   console.log(error);
-      // }
-    } else {
-      try {
+    try {
+      if (withSig) {
+        const tokensRequired = await theaSDK.recover.queryRecoverFungibles(
+          tokenId,
+          parseUnits(amount, 4)
+        );
+        await recoverWithSig(
+          tokenId,
+          parseUnits(amount, 4),
+          tokensRequired.cbt,
+          tokensRequired.vintage,
+          tokensRequired.sdg,
+          tokensRequired.rating,
+          account
+        );
+      } else {
         await theaSDK.recover.recoverNFT(tokenId, parseUnits(amount, 4));
-        alert("Transaction successful");
-      } catch (error) {
-        alert("Transaction failed");
-        console.log(error);
       }
+      alert("Transaction successful");
+    } catch (error) {
+      alert("Transaction failed");
+      console.log(error);
     }
   };
 

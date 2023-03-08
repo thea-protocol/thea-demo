@@ -1,6 +1,5 @@
 import { TheaSDKContext } from "@/components/TheaSDKProvider";
 import { retireWithSig } from "@/utils/utils";
-import { BigNumber } from "ethers";
 import { parseUnits } from "ethers/lib/utils.js";
 import { Label, TextInput, Button } from "flowbite-react";
 import React, { useContext, useEffect, useState } from "react";
@@ -14,20 +13,15 @@ function Retire() {
 
   const retire = async (withSig?: boolean) => {
     if (!account || !tokenId || !amount || !theaSDK) return;
-    if (withSig) {
-      // await retireWithSig(
-      //   BigNumber.from(tokenId),
-      //   parseUnits(amount, 4),
-      //   account
-      // );
-    } else {
-      try {
+    try {
+      if (withSig) {
+        await retireWithSig(tokenId, parseUnits(amount, 4), account);
+      } else {
         await theaSDK.offset.offsetNFT(tokenId, parseUnits(amount, 4));
-        alert("Transaction successful");
-      } catch (error) {
-        alert("Transaction failed");
-        console.log(error);
       }
+    } catch (error) {
+      alert("Transaction failed");
+      console.log(error);
     }
   };
 
