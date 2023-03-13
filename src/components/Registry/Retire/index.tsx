@@ -3,6 +3,7 @@ import { retireWithSig } from "@/utils/utils";
 import { parseUnits } from "ethers/lib/utils.js";
 import { Label, TextInput, Button } from "flowbite-react";
 import React, { useContext, useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 function Retire() {
   const [tokenId, setTokenId] = useState("");
@@ -19,8 +20,9 @@ function Retire() {
       } else {
         await theaSDK.offset.offsetNFT(tokenId, parseUnits(amount, 4));
       }
+      toast.success("Transaction success");
     } catch (error) {
-      alert("Transaction failed");
+      toast.error("Transaction failed");
       console.log(error);
     }
   };

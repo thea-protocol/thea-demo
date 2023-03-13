@@ -3,6 +3,7 @@ import { convertWithSig } from "@/utils/utils";
 import { parseUnits } from "ethers/lib/utils.js";
 import { Label, TextInput, Button } from "flowbite-react";
 import React, { useContext, useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 function Convert() {
   const [tokenId, setTokenId] = useState("");
@@ -19,9 +20,9 @@ function Convert() {
       } else {
         await theaSDK.convert.convertNFT(tokenId, parseUnits(amount, 4));
       }
-      alert("Transaction successful");
+      toast.success("Transaction successful");
     } catch (error) {
-      alert("Transaction failed");
+      toast.error("Transaction failed");
       console.log(error);
     }
   };

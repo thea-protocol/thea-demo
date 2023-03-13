@@ -5,6 +5,7 @@ import { parseUnits } from "ethers/lib/utils.js";
 import { recoverWithSig } from "@/utils/utils";
 import { TheaSDKContext } from "@/components/TheaSDKProvider";
 import { btmConfig, theaErc1155Config } from "@/constants/abi";
+import { toast } from "react-toastify";
 
 function Recover() {
   const [tokenId, setTokenId] = useState("");
@@ -34,9 +35,9 @@ function Recover() {
       } else {
         await theaSDK.recover.recoverNFT(tokenId, parseUnits(amount, 4));
       }
-      alert("Transaction successful");
+      toast.success("Transaction successful");
     } catch (error) {
-      alert("Transaction failed");
+      toast.error("Transaction failed");
       console.log(error);
     }
   };
